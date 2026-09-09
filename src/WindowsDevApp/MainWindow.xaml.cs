@@ -172,10 +172,10 @@ public partial class MainWindow : Window
 
     private void BrowseRepoButton_Click(object sender, RoutedEventArgs e)
     {
-        using var dialog = new System.Windows.Forms.FolderBrowserDialog();
-        if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        var dialog = new OpenFolderDialog { Title = "Select the local repo folder" };
+        if (dialog.ShowDialog() == true)
         {
-            RepoPathBox.Text = dialog.SelectedPath;
+            RepoPathBox.Text = dialog.FolderName;
         }
     }
 
