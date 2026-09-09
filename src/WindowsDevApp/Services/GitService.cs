@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using LibGit2Sharp;
 using LibGit2Sharp.Handlers;
 
@@ -202,8 +204,12 @@ public class GitService
     }
 
     /// <summary>
-    /// Local branches whose tip is an ancestor of (i.e. fully merged into) the current branch,
-    /// excluding the current branch itself and common protected branch names.
+    /// Local branches that are already reflected in the current branch, excluding the current
+    /// branch itself and common protected branch names. Catches both regular merges (the branch
+    /// tip is an ancestor of HEAD) and squash/rebase merges (the branch's total diff since it
+    /// forked matches the diff of a commit already on the current branch) — GitHub's default
+    /// "Squash and merge" produces a brand-new commit SHA, so a plain ancestor check alone
+    /// would never flag those as merged.
     /// </summary>
     public List<BranchItem> GetMergedLocalBranches(string repoPath)
     {
@@ -211,19 +217,62 @@ public class GitService
         var head = repo.Head;
         var protectedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "main", "master", head.FriendlyName };
 
+        var headCommitFingerprints = new HashSet<string>();
+        foreach (var commit in repo.Commits.QueryBy(new CommitFilter { IncludeReachableFrom = head.Tip }).Take(1000))
+        {
+            var parent = commit.Parents.FirstOrDefault();
+            if (parent == null) continue;
+
+            var patch = repo.Diff.Compare<Patch>(parent.Tree, commit.Tree);
+            headCommitFingerprints.Add(ComputeDiffFingerprint(patch.Content));
+        }
+
         var result = new List<BranchItem>();
         foreach (var b in repo.Branches.Where(b => !b.IsRemote))
         {
             if (protectedNames.Contains(b.FriendlyName)) continue;
 
             var mergeBase = repo.ObjectDatabase.FindMergeBase(b.Tip, head.Tip);
-            if (mergeBase != null && mergeBase.Sha == b.Tip.Sha)
+            if (mergeBase == null) continue;
+
+            var isMerged = mergeBase.Sha == b.Tip.Sha;
+            if (!isMerged)
+            {
+                var squashPatch = repo.Diff.Compare<Patch>(mergeBase.Tree, b.Tip.Tree);
+                var fingerprint = ComputeDiffFingerprint(squashPatch.Content);
+                isMerged = headCommitFingerprints.Contains(fingerprint);
+            }
+
+            if (isMerged)
             {
                 result.Add(new BranchItem { Name = b.FriendlyName, IsRemote = false, IsCurrent = false });
             }
         }
 
         return result.OrderBy(b => b.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    /// <summary>
+    /// Reduces a unified diff to just its added/removed content lines (dropping file headers,
+    /// hunk line numbers, and blob ids) and hashes the result, so two diffs with identical
+    /// content but different commit metadata (author, date, message) fingerprint the same.
+    /// </summary>
+    private static string ComputeDiffFingerprint(string patchContent)
+    {
+        var sb = new StringBuilder();
+        foreach (var rawLine in patchContent.Split('\n'))
+        {
+            var line = rawLine.TrimEnd('\r');
+            if (line.StartsWith("+++", StringComparison.Ordinal) || line.StartsWith("---", StringComparison.Ordinal)) continue;
+            if (line.Length > 0 && (line[0] == '+' || line[0] == '-'))
+            {
+                sb.Append(line);
+                sb.Append('\n');
+            }
+        }
+
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(sb.ToString()));
+        return Convert.ToHexString(bytes);
     }
 
     /// <summary>Deletes the named local branches. Remote branches are never touched.</summary>

@@ -4,7 +4,7 @@
         Title="Clean up merged branches" Height="450" Width="420" WindowStartupLocation="CenterOwner">
     <DockPanel Margin="10">
         <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,10"
-                   Text="These local branches are fully merged into the current branch. Uncheck any you want to keep, then delete the rest."/>
+                   Text="These local branches are already reflected in the current branch (including via squash/rebase merge). Uncheck any you want to keep, then delete the rest."/>
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
             <Button Content="Delete selected" Width="130" Margin="0,0,6,0" Click="DeleteButton_Click" IsDefault="True"/>
             <Button Content="Cancel" Width="80" Click="CancelButton_Click" IsCancel="True"/>
