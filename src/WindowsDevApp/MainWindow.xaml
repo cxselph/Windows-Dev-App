@@ -110,6 +110,8 @@
                                     ToolTip="Discards local changes and resets the current branch to exactly match origin"/>
                             <Button x:Name="CleanupBranchesButton" Content="Clean up merged branches" Click="CleanupBranchesButton_Click"
                                     ToolTip="Deletes local branches already merged into the current branch"/>
+                            <Button x:Name="DeleteBranchButton" Content="Delete branch" Click="DeleteBranchButton_Click"
+                                    ToolTip="Deletes the selected local branch, regardless of merge status"/>
                         </StackPanel>
                         <TextBlock DockPanel.Dock="Top" x:Name="CurrentBranchText" FontWeight="Bold" Margin="0,0,0,8"/>
                         <TextBlock DockPanel.Dock="Bottom" x:Name="BranchStatusText" Margin="0,8,0,0" TextWrapping="Wrap"/>

@@ -309,6 +309,38 @@ public partial class MainWindow : Window
         RefreshBranchesFromLocalRepo();
     }
 
+    private void DeleteBranchButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedProfile == null) return;
+
+        if (BranchesList.SelectedItem is not BranchItem branch)
+        {
+            BranchStatusText.Text = "Select a branch first.";
+            return;
+        }
+
+        if (branch.IsRemote)
+        {
+            BranchStatusText.Text = "That's a remote-tracking branch, not a local one — nothing to delete locally.";
+            return;
+        }
+
+        if (branch.IsCurrent)
+        {
+            BranchStatusText.Text = "Can't delete the branch that's currently checked out. Checkout a different branch first.";
+            return;
+        }
+
+        var confirm = MessageBox.Show(
+            $"Delete local branch '{branch.Name}'? This cannot be undone. The remote branch (if any) is not affected.",
+            "Confirm delete branch", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (confirm != MessageBoxResult.Yes) return;
+
+        var result = _git.DeleteLocalBranches(_selectedProfile.RepoPath, new[] { branch.Name });
+        BranchStatusText.Text = result.Message;
+        RefreshBranchesFromLocalRepo();
+    }
+
     private async Task RunBranchOperation(string busyMessage, Func<GitOperationResult> operation)
     {
         BranchStatusText.Text = busyMessage;
@@ -334,6 +366,7 @@ public partial class MainWindow : Window
         PullButton.IsEnabled = enabled;
         ForceSyncButton.IsEnabled = enabled;
         CleanupBranchesButton.IsEnabled = enabled;
+        DeleteBranchButton.IsEnabled = enabled;
     }
 
     // ---------- Env file ----------
