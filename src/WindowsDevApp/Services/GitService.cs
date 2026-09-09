@@ -64,7 +64,7 @@ public class GitService
             if (remote == null) return GitOperationResult.Fail("Repo has no 'origin' remote.");
 
             var refSpecs = remote.FetchRefSpecs.Select(r => r.Specification);
-            var options = new FetchOptions { CredentialsProvider = CredentialsProvider };
+            var options = new FetchOptions { CredentialsProvider = CredentialsProvider, Prune = true };
             Commands.Fetch(repo, remote.Name, refSpecs, options, "fetch via WindowsDevApp");
             return GitOperationResult.Ok("Fetched latest from origin.");
         }
@@ -149,7 +149,7 @@ public class GitService
             if (remote == null) return GitOperationResult.Fail("Repo has no 'origin' remote.");
 
             var refSpecs = remote.FetchRefSpecs.Select(r => r.Specification);
-            var fetchOptions = new FetchOptions { CredentialsProvider = CredentialsProvider };
+            var fetchOptions = new FetchOptions { CredentialsProvider = CredentialsProvider, Prune = true };
             Commands.Fetch(repo, remote.Name, refSpecs, fetchOptions, "fetch via WindowsDevApp");
 
             var signature = new Signature("WindowsDevApp", "devapp@local", DateTimeOffset.Now);
@@ -185,7 +185,7 @@ public class GitService
             if (remote == null) return GitOperationResult.Fail("Repo has no 'origin' remote.");
 
             var refSpecs = remote.FetchRefSpecs.Select(r => r.Specification);
-            var fetchOptions = new FetchOptions { CredentialsProvider = CredentialsProvider };
+            var fetchOptions = new FetchOptions { CredentialsProvider = CredentialsProvider, Prune = true };
             Commands.Fetch(repo, remote.Name, refSpecs, fetchOptions, "fetch via WindowsDevApp");
 
             var currentBranch = repo.Head;
