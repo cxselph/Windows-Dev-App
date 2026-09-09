@@ -1,0 +1,20 @@
+<Window x:Class="WindowsDevApp.CleanupBranchesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Clean up merged branches" Height="450" Width="420" WindowStartupLocation="CenterOwner">
+    <DockPanel Margin="10">
+        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Margin="0,0,0,10"
+                   Text="These local branches are fully merged into the current branch. Uncheck any you want to keep, then delete the rest."/>
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Delete selected" Width="130" Margin="0,0,6,0" Click="DeleteButton_Click" IsDefault="True"/>
+            <Button Content="Cancel" Width="80" Click="CancelButton_Click" IsCancel="True"/>
+        </StackPanel>
+        <ListBox x:Name="BranchesListBox">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected, Mode=TwoWay}" Margin="2"/>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</Window>

@@ -273,6 +273,42 @@ public partial class MainWindow : Window
         await RunBranchOperation("Force syncing...", () => _git.ForceSyncToRemote(repoPath));
     }
 
+    private void CleanupBranchesButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedProfile == null) return;
+        var repoPath = _selectedProfile.RepoPath;
+
+        List<BranchItem> merged;
+        try
+        {
+            merged = _git.GetMergedLocalBranches(repoPath);
+        }
+        catch (Exception ex)
+        {
+            BranchStatusText.Text = $"Could not check merged branches: {ex.Message}";
+            return;
+        }
+
+        if (merged.Count == 0)
+        {
+            BranchStatusText.Text = "No local branches are fully merged into the current branch.";
+            return;
+        }
+
+        var picker = new CleanupBranchesWindow(merged) { Owner = this };
+        if (picker.ShowDialog() != true || picker.SelectedBranchNames.Count == 0)
+            return;
+
+        var confirm = MessageBox.Show(
+            $"Delete {picker.SelectedBranchNames.Count} local branch(es)? This cannot be undone. Remote branches are not affected.",
+            "Confirm delete branches", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (confirm != MessageBoxResult.Yes) return;
+
+        var result = _git.DeleteLocalBranches(repoPath, picker.SelectedBranchNames);
+        BranchStatusText.Text = result.Message;
+        RefreshBranchesFromLocalRepo();
+    }
+
     private async Task RunBranchOperation(string busyMessage, Func<GitOperationResult> operation)
     {
         BranchStatusText.Text = busyMessage;
@@ -297,6 +333,7 @@ public partial class MainWindow : Window
         CheckoutButton.IsEnabled = enabled;
         PullButton.IsEnabled = enabled;
         ForceSyncButton.IsEnabled = enabled;
+        CleanupBranchesButton.IsEnabled = enabled;
     }
 
     // ---------- Env file ----------

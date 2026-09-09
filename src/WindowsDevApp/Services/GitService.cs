@@ -200,4 +200,55 @@ public class GitService
             return GitOperationResult.Fail($"Force sync failed: {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// Local branches whose tip is an ancestor of (i.e. fully merged into) the current branch,
+    /// excluding the current branch itself and common protected branch names.
+    /// </summary>
+    public List<BranchItem> GetMergedLocalBranches(string repoPath)
+    {
+        using var repo = new Repository(repoPath);
+        var head = repo.Head;
+        var protectedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "main", "master", head.FriendlyName };
+
+        var result = new List<BranchItem>();
+        foreach (var b in repo.Branches.Where(b => !b.IsRemote))
+        {
+            if (protectedNames.Contains(b.FriendlyName)) continue;
+
+            var mergeBase = repo.ObjectDatabase.FindMergeBase(b.Tip, head.Tip);
+            if (mergeBase != null && mergeBase.Sha == b.Tip.Sha)
+            {
+                result.Add(new BranchItem { Name = b.FriendlyName, IsRemote = false, IsCurrent = false });
+            }
+        }
+
+        return result.OrderBy(b => b.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    /// <summary>Deletes the named local branches. Remote branches are never touched.</summary>
+    public GitOperationResult DeleteLocalBranches(string repoPath, IEnumerable<string> branchNames)
+    {
+        try
+        {
+            using var repo = new Repository(repoPath);
+            var deleted = new List<string>();
+
+            foreach (var name in branchNames)
+            {
+                var branch = repo.Branches[name];
+                if (branch == null || branch.IsRemote) continue;
+                repo.Branches.Remove(branch);
+                deleted.Add(name);
+            }
+
+            return deleted.Count > 0
+                ? GitOperationResult.Ok($"Deleted {deleted.Count} branch(es): {string.Join(", ", deleted)}")
+                : GitOperationResult.Ok("No branches were deleted.");
+        }
+        catch (Exception ex)
+        {
+            return GitOperationResult.Fail($"Delete failed: {ex.Message}");
+        }
+    }
 }
