@@ -18,10 +18,21 @@ public static class ServiceControlService
 {
     public static List<ServiceInfo> ListServices()
     {
-        return ServiceController.GetServices()
-            .OrderBy(s => s.DisplayName, StringComparer.OrdinalIgnoreCase)
-            .Select(s => new ServiceInfo { Name = s.ServiceName, DisplayName = s.DisplayName, Status = s.Status.ToString() })
-            .ToList();
+        var results = new List<ServiceInfo>();
+
+        foreach (var s in ServiceController.GetServices())
+        {
+            try
+            {
+                results.Add(new ServiceInfo { Name = s.ServiceName, DisplayName = s.DisplayName, Status = s.Status.ToString() });
+            }
+            catch
+            {
+                // Some protected/system services refuse to be queried even when elevated; skip them.
+            }
+        }
+
+        return results.OrderBy(r => r.DisplayName, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     public static string GetStatus(string serviceName)
