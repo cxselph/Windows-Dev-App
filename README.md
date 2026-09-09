@@ -5,6 +5,8 @@ without running git/service commands by hand. It lets you, per saved profile:
 
 - Sign in to GitHub with a Personal Access Token (used to authenticate git fetch/pull over HTTPS).
 - List local and remote branches of a target repo folder, and checkout/pull/force-sync them.
+- Clean up local branches that are already merged — including squash/rebase merges — and delete
+  any single local branch by hand.
 - Edit a single field of a local `.env` file by pasting a new value and saving.
 - Restart a local Windows service.
 
@@ -51,11 +53,24 @@ Windows service normally requires elevation.
 ## Using it
 
 - **Branches tab**: "Refresh (fetch)" pulls down the latest refs from `origin` without changing
-  your working tree. Select a branch (local or `origin/...`) and click "Checkout selected". "Pull
-  / Update" fast-forwards the current branch to match its remote. If the branch has diverged or
-  has local edits, use "Force sync to remote" — this discards local changes and untracked files
-  and hard-resets to match `origin` exactly, which is normally what you want when just testing a
-  preview branch.
+  your working tree — this also prunes local `origin/...` entries whose branch was deleted on
+  GitHub (e.g. after a PR merges and its head branch gets auto-deleted). Select a branch (local or
+  `origin/...`) and click "Checkout selected". "Pull / Update" fast-forwards the current branch to
+  match its remote. If the branch has diverged or has local edits, use "Force sync to remote" —
+  this discards local changes and untracked files and hard-resets to match `origin` exactly, which
+  is normally what you want when just testing a preview branch.
+  - "Clean up merged branches" lists local branches already reflected in the current branch and
+    lets you pick which to delete. This detects both regular merges (branch is an ancestor of
+    HEAD) and squash/rebase merges (GitHub's default "Squash and merge" produces a new commit SHA,
+    so it fingerprints each branch's total diff and checks it against commits already on the
+    current branch — the same trick the `git-delete-squashed` tool uses). It's a content-based
+    heuristic, so a branch with extra unmerged commits, or one whose PR hasn't merged yet, won't
+    show up here.
+  - "Delete branch" removes whichever local branch is selected, unconditionally (after a
+    confirmation) — use this for branches the cleanup heuristic above doesn't catch. It won't let
+    you delete the currently checked-out branch or a remote-tracking (`origin/...`) entry. Neither
+    this nor "Clean up merged branches" ever deletes anything on GitHub — only local branch refs
+    in the target repo folder.
 - **Environment File tab**: pick a field from the list, paste the new value into the box, and
   click "Save value". Every other line in the file (comments, blank lines, other keys) is left
   untouched.
@@ -67,3 +82,5 @@ Windows service normally requires elevation.
 - Profiles and the encrypted GitHub token live in `%APPDATA%\WindowsDevApp\`.
 - All git operations act on the working tree you point at directly (via LibGit2Sharp, bundled
   into the app) — no separate `git.exe` install is required.
+- Any unexpected error is shown in a dialog with the full exception details rather than the app
+  silently closing — if you hit one, that text is exactly what's needed to diagnose it.
