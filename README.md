@@ -1,6 +1,6 @@
 # Windows Dev App
 
-A portable Windows desktop app (WPF, .NET 8) for testing Vercel preview branches locally
+A portable Windows desktop app (WPF, .NET 10 LTS) for testing Vercel preview branches locally
 without running git/service commands by hand. It lets you, per saved profile:
 
 - Sign in to GitHub with a Personal Access Token (used to authenticate git fetch/pull over HTTPS).
@@ -13,8 +13,12 @@ without running git/service commands by hand. It lets you, per saved profile:
 ## Requirements to build
 
 This is a WPF app, so it must be built **on Windows**, with the
-[.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) installed. It cannot be built on
-macOS/Linux because WPF only runs on Windows.
+[.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) installed. `global.json` pins the
+SDK to 10.0.401 (later 10.0.4xx patches are allowed); run `dotnet --version` to check. WPF apps only
+run on Windows.
+
+.NET 10 is an LTS release, supported until November 2028. (The app was on .NET 8 until October 2026;
+.NET 8 reaches end of life on November 10, 2026.)
 
 ## Build & run (development)
 
@@ -27,14 +31,36 @@ dotnet run
 
 ```
 cd src/WindowsDevApp
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:RestoreLockedMode=true
 ```
 
-The output `.exe` will be under `src/WindowsDevApp/bin/Release/net8.0-windows/win-x64/publish/`.
+The output `.exe` will be under `src/WindowsDevApp/bin/Release/net10.0-windows/win-x64/publish/`.
+`-p:RestoreLockedMode=true` makes the build fail rather than change `packages.lock.json`, so a release
+only ever contains the reviewed package versions.
+
+The exe is self-contained: it carries its own .NET runtime. That means **every copy has to be
+rebuilt and replaced** to get .NET security fixes; a .NET update installed on the PC doesn't reach it.
 Copy that one file anywhere (a USB stick, another machine, etc.) — no install step required.
 
 The app requests Administrator privileges on launch (see `app.manifest`), since restarting a
 Windows service normally requires elevation.
+
+## Dependency updates
+
+House rule: dependencies only change through a reviewed PR.
+
+- **Locked restores:** `packages.lock.json` records every NuGet package's exact version and content
+  hash (`RestorePackagesWithLockFile` in the `.csproj`). Commit it with any package change. Release
+  builds use `-p:RestoreLockedMode=true` (above). To change a package, edit its version in the
+  `.csproj`, run `dotnet restore`, and commit both files.
+- **SDK pin:** `global.json` (10.0.401, patch roll-forward only). Move to a new SDK band or major
+  version in its own PR.
+- **Dependabot** (`.github/dependabot.yml`) proposes NuGet and SDK updates weekly. A release has to be
+  public for 14 days first, and major versions are skipped. Security fixes skip both rules. Never
+  auto-merge them. Each .NET monthly patch (security fixes in the runtime) means rebuilding and
+  redistributing the exe.
+- **Runtime:** stay on an LTS line. Plan the move off .NET 10 well before its end of support
+  (November 2028).
 
 ## First-time setup
 
