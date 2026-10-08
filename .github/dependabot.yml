@@ -1,0 +1,27 @@
+# Dependabot proposes dependency updates as PRs; nothing merges or installs on its own.
+# A release has to be public for 14 days before it's proposed; security fixes skip that
+# wait and the major-version filter. Never auto-merge. Each PR updates packages.lock.json
+# too; release builds restore in locked mode (README).
+version: 2
+updates:
+  # NuGet packages in src/WindowsDevApp/WindowsDevApp.csproj (+ packages.lock.json).
+  - package-ecosystem: "nuget"
+    directory: "/src/WindowsDevApp"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # The .NET SDK pinned in global.json (patch/feature-band updates within .NET 10).
+  - package-ecosystem: "dotnet-sdk"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
